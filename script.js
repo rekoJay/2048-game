@@ -14,6 +14,8 @@ const maxTime = 180;
 let hasStarted = false;
 timerDisplay.innerText = '-';
 let mergedIndices = [];
+let isGameEnded = false;
+const moveSound = document.getElementById('move-sound');
 
 function initBoard() {
   for (let i = 0; i < boardSize * boardSize; i++) {
@@ -81,23 +83,37 @@ function getTileColor(val) {
 document.addEventListener('keydown', handleKey);
 
 function handleKey(e) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      const beforeMove = [...board]; // 이동 전 상태 복사
-      move(e.key);
-      const afterMove = board;
+  if (isGameEnded || isTimeOver) return;
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    const beforeMove = [...board]; // 이동 전 상태 복사
+    move(e.key);
+    const afterMove = board;
   
       // 이동이 실제로 있었는지 확인
-      const changed = beforeMove.some((val, idx) => val !== afterMove[idx]);
+    const changed = beforeMove.some((val, idx) => val !== afterMove[idx]);
+
+    if (changed && moveSound) {
+      moveSound.currentTime = 0;
+      moveSound.play().catch(e => console.log("효과음 재생 실패", e));
+    }
   
-      if (changed) {
+    if (changed) {
         addNewTile();
         drawBoard();
         checkWin();
-        if (isGameOver()) alert('Game Over!');
-        if (isTimeOver) return;
+      if (isGameOver()) {
+        isGameEnded = true;
+        clearInterval(timerInterval);
+        bgm.pause();        // ⏸️ 음악 정지
+        bgm.currentTime = 0; // ⏪ 처음부터로 되돌림
+        alert('Game Over!');
+        return;
       }
+        
+        if (isTimeOver) return;
     }
   }
+}
 // 2. 스와이프 감지 (handleKey 함수 바깥에 있어야 함)
 let touchStartX = 0;
 let touchStartY = 0;
@@ -132,6 +148,7 @@ function slideRowLeft(row) {
       score += arr[i];
       arr[i + 1] = 0;
       mergedThisTurn.push(i); // 몇 번째 위치에서 합쳐졌는지
+      addBonusTime(arr[i]); // ✅ 바로 여기! 합쳐진 다음 줄
     }
   }
 
@@ -300,6 +317,41 @@ function startTimer() {
   }, 1000);
 }
 
+function addBonusTime(mergedValue) {
+  let bonus = 0;
+  if (mergedValue === 4) bonus = 0;
+  else if (mergedValue === 8) bonus = 1;
+  else if (mergedValue === 16) bonus = 1;
+  else if (mergedValue === 32) bonus = 2;
+  else if (mergedValue === 64) bonus = 2;
+  else if (mergedValue === 128) bonus = 3;
+  else if (mergedValue === 256) bonus = 3;
+  else if (mergedValue === 512) bonus = 4;
+  else if (mergedValue === 1024) bonus = 5;
+  else if (mergedValue === 2048) bonus = 6;
+
+  timeLeft = Math.min(timeLeft + bonus, maxTime); // ⏱️ 최대 180초까지만
+  timerDisplay.innerText = timeLeft;
+  if (bonus > 0) {
+    showTimeBonusText(bonus);
+  }
+  
+}
+
+function showTimeBonusText(bonus) {
+  const textEl = document.getElementById('time-bonus-text');
+  textEl.innerText = `+${bonus}s`;
+
+  // ✅ 강제로 애니메이션 재적용
+  textEl.classList.remove('show');
+  void textEl.offsetWidth; // 강제 리플로우
+  textEl.classList.add('show');
+
+  // ✅ display: none 제거함
+  setTimeout(() => {
+    textEl.classList.remove('show'); // 애니메이션만 제거
+  }, 1000);
+}
 
   
 
@@ -312,6 +364,7 @@ function tryPlayBGM() {
   if (!hasStarted) {
     hasStarted = true;
     startTimer(); // ⏱️ 타이머도 여기서 시작!
+    document.getElementById("start-message").classList.add("hidden");
   }
 
   if (bgm.paused) {
@@ -330,13 +383,33 @@ document.addEventListener('keydown', tryPlayBGM, { once: true });
 
 
 document.getElementById('restart-button').addEventListener('click', () => {
-    gameBoard.innerHTML = '';
-    board.length = 0;
-    score = 0;
-    hasWon = false;
-    isTimeOver = false;
-    initBoard();
-  });
+  clearInterval(timerInterval); // 타이머 멈춤
+  timeLeft = 180; // 다시 180초로 초기화
+  timerDisplay.innerText = timeLeft; // 숫자 표시도 다시
+  timeBar.style.width = '100%'; // 타임바도 가득 차게
+  timeBar.style.backgroundColor = "#2ecc71"; // 초록색으로 초기화
+
+  gameBoard.innerHTML = '';
+  board.length = 0;
+  score = 0;
+  hasWon = false;
+  isTimeOver = false;
+  isGameEnded = false;
+
+  initBoard();
+  drawBoard();
+  startTimer(); // 타이머 다시 시작!
+
+  if (bgm.paused) {
+    bgm.volume = 0.5;
+    bgm.play().catch((e) => {
+      console.log("음악 재생 실패:", e);
+    });
+  }
+  
+  
+});
+
   
   document.getElementById('music-toggle').addEventListener('click', () => {
     if (bgm.paused) {

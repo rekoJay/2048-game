@@ -79,6 +79,7 @@ body {
     }
   }
   #time-bar-container {
+    position: relative;
     width: 100%;
     max-width: 320px;
     height: 20px;
@@ -104,4 +105,60 @@ body {
     50%  { transform: scale(1.2); }
     100% { transform: scale(1); }
   }
+
+#start-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px 40px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    z-index: 10;
+}
   
+.hidden {
+    display: none;
+}
+
+#time-bonus-text {
+  position: absolute;
+  top: 175px; /* ✅ 타임바 아래 위치 기준으로 수동 조정 (너가 맞춰도 OK) */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  font-weight: bold;
+  color: #2ecc71;
+  background: #e9fff2;
+  padding: 6px 12px;
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+
+#time-bonus-text.show {
+  animation: cutePopUp 1s ease-out;
+}
+
+@keyframes cutePopUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.7);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -10px) scale(1.1);
+  }
+  70% {
+    transform: translate(-50%, -20px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -40px) scale(0.9);
+  }
+}
